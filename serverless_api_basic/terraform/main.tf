@@ -2,9 +2,19 @@ resource "aws_dynamodb_table" "data" {
   name         = "${var.app_name}-data"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "id"
-  attribute { name = "id" type = "S" }
-  server_side_encryption { enabled = true }
-  point_in_time_recovery { enabled = true }
+  
+  attribute {
+    name = "id"
+    type = "S"
+  }
+  
+  server_side_encryption {
+    enabled = true
+  }
+  
+  point_in_time_recovery {
+    enabled = true
+  }
 }
 
 resource "aws_iam_role" "lambda" {
@@ -41,7 +51,7 @@ resource "aws_lambda_function" "api" {
   function_name = "${var.app_name}-api"
   role          = aws_iam_role.lambda.arn
   handler       = "index.handler"
-  runtime       = "python3.11"
+  runtime       = "python3.9"
   environment {
     variables = { TABLE_NAME = aws_dynamodb_table.data.name }
   }
