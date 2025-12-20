@@ -1,0 +1,69 @@
+resource "aws_s3_bucket" "raw" {
+  bucket = "${var.project_name}-raw-${data.aws_caller_identity.current.account_id}"
+}
+
+resource "aws_s3_bucket" "processed" {
+  bucket = "${var.project_name}-processed-${data.aws_caller_identity.current.account_id}"
+}
+
+resource "aws_s3_bucket" "athena_results" {
+  bucket = "${var.project_name}-athena-${data.aws_caller_identity.current.account_id}"
+}
+
+resource "aws_glue_catalog_database" "main" {
+  name = "${var.project_name}_db"
+}
+
+resource "aws_iam_role" "glue" {
+  name = "${var.project_name}-glue"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "glue.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "glue" {
+  role       = aws_iam_role.glue.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+resource "aws_iam_role_policy" "glue_s3" {
+  role = aws_iam_role.glue.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["s3:*"]
+      Resource = [
+        aws_s3_bucket.raw.arn,
+        "${aws_s3_bucket.raw.arn}/*",
+        aws_s3_bucket.processed.arn,
+        "${aws_s3_bucket.processed.arn}/*"
+      ]
+    }]
+  })
+}
+
+resource "aws_glue_crawler" "main" {
+  name          = "${var.project_name}-crawler"
+  role          = aws_iam_role.glue.arn
+  database_name = aws_glue_catalog_database.main.name
+  s3_target {
+    path = "s3://${aws_s3_bucket.raw.bucket}/"
+  }
+}
+
+resource "aws_athena_workgroup" "main" {
+  name = var.project_name
+  configuration {
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/"
+    }
+  }
+}
+
+data "aws_caller_identity" "current" {}
