@@ -30,14 +30,27 @@ resource "aws_db_instance" "postgres" {
   instance_class         = var.instance_class
   allocated_storage      = var.storage_gb
   storage_encrypted      = true
-  db_name                = var.db_name
   username               = var.master_username
-  manage_master_user_password = true
+  password               = random_password.db.result
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   skip_final_snapshot    = var.skip_final_snapshot
   multi_az               = var.multi_az
   backup_retention_period = 7
+}
+
+resource "random_password" "db" {
+  length  = 16
+  special = true
+}
+
+resource "aws_secretsmanager_secret" "db_password" {
+  name = "${var.db_name}-password"
+}
+
+resource "aws_secretsmanager_secret_version" "db_password" {
+  secret_id     = aws_secretsmanager_secret.db_password.id
+  secret_string = random_password.db.result
 }
 
 data "aws_caller_identity" "current" {}
