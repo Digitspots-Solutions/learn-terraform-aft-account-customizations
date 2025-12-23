@@ -1,7 +1,7 @@
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "aft-backend-${data.aws_caller_identity.current.account_id}"
+    bucket = "terraform-state-${data.aws_caller_identity.current.account_id}"
     key    = "baseline_networking/terraform.tfstate"
     region = "us-east-1"
   }
