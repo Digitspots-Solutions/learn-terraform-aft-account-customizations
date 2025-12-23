@@ -1,5 +1,5 @@
 # Simple Storage + CDN Stack - S3 + CloudFront
-# Using native Terraform instead of CloudFormation
+# Using Origin Access Identity (OAI) for compatibility with AWS Provider 3.x
 
 # S3 Bucket for storage
 resource "aws_s3_bucket" "storage" {
@@ -32,12 +32,9 @@ resource "aws_s3_bucket_public_access_block" "storage" {
   restrict_public_buckets = true
 }
 
-# CloudFront Origin Access Control
-resource "aws_cloudfront_origin_access_control" "storage" {
-  name                              = "simple-storage-oac"
-  origin_access_control_origin_type = "s3"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
+# CloudFront Origin Access Identity (OAI) for S3 access
+resource "aws_cloudfront_origin_access_identity" "storage" {
+  comment = "OAI for simple-storage CDN"
 }
 
 # CloudFront Distribution
@@ -47,9 +44,12 @@ resource "aws_cloudfront_distribution" "cdn" {
   price_class         = var.price_class
 
   origin {
-    domain_name              = aws_s3_bucket.storage.bucket_regional_domain_name
-    origin_id                = "S3-${aws_s3_bucket.storage.id}"
-    origin_access_control_id = aws_cloudfront_origin_access_control.storage.id
+    domain_name = aws_s3_bucket.storage.bucket_regional_domain_name
+    origin_id   = "S3-${aws_s3_bucket.storage.id}"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.storage.cloudfront_access_identity_path
+    }
   }
 
   default_cache_behavior {
@@ -85,25 +85,20 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 }
 
-# S3 Bucket Policy for CloudFront
+# S3 Bucket Policy for CloudFront OAI
 resource "aws_s3_bucket_policy" "storage" {
   bucket = aws_s3_bucket.storage.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid    = "AllowCloudFrontServicePrincipal"
+      Sid    = "AllowCloudFrontOAI"
       Effect = "Allow"
       Principal = {
-        Service = "cloudfront.amazonaws.com"
+        AWS = aws_cloudfront_origin_access_identity.storage.iam_arn
       }
       Action   = "s3:GetObject"
       Resource = "${aws_s3_bucket.storage.arn}/*"
-      Condition = {
-        StringEquals = {
-          "AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
-        }
-      }
     }]
   })
 }
