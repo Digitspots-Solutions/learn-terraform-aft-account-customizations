@@ -7,7 +7,10 @@ resource "aws_iam_role" "portal_automation" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::929557547206:role/opportunity-portal-dev-lambda-role"
+          AWS = [
+            "arn:aws:iam::929557547206:role/opportunity-portal-dev-lambda-role",
+            "arn:aws:iam::929557547206:role/opportunity-portal-dev-codebuild-terraform"
+          ]
         }
         Action = "sts:AssumeRole"
         Condition = {
