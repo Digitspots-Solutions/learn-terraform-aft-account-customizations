@@ -30,18 +30,18 @@ resource "aws_security_group" "rds" {
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier             = local.db_name_unique
-  engine                 = "postgres"
-  engine_version         = "15.4"
-  instance_class         = var.instance_class
-  allocated_storage      = var.storage_gb
-  storage_encrypted      = true
-  username               = var.master_username
-  password               = random_password.db.result
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = var.skip_final_snapshot
-  multi_az               = var.multi_az
+  identifier              = local.db_name_unique
+  engine                  = "postgres"
+  engine_version          = "15.4"
+  instance_class          = var.instance_class
+  allocated_storage       = var.storage_gb
+  storage_encrypted       = true
+  username                = var.master_username
+  password                = random_password.db.result
+  db_subnet_group_name    = aws_db_subnet_group.main.name
+  vpc_security_group_ids  = [aws_security_group.rds.id]
+  skip_final_snapshot     = var.skip_final_snapshot
+  multi_az                = var.multi_az
   backup_retention_period = 7
 }
 

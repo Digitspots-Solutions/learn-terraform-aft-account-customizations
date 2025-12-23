@@ -24,17 +24,17 @@ resource "aws_security_group" "redshift" {
 }
 
 resource "aws_redshift_cluster" "main" {
-  cluster_identifier  = var.cluster_name
-  database_name       = var.database_name
-  master_username     = var.master_username
-  master_password     = random_password.redshift.result
-  node_type           = var.node_type
-  cluster_type        = "multi-node"
-  number_of_nodes     = var.number_of_nodes
+  cluster_identifier        = var.cluster_name
+  database_name             = var.database_name
+  master_username           = var.master_username
+  master_password           = random_password.redshift.result
+  node_type                 = var.node_type
+  cluster_type              = "multi-node"
+  number_of_nodes           = var.number_of_nodes
   cluster_subnet_group_name = aws_redshift_subnet_group.main.name
   vpc_security_group_ids    = [aws_security_group.redshift.id]
-  skip_final_snapshot = true
-  encrypted           = true
+  skip_final_snapshot       = true
+  encrypted                 = true
 }
 
 resource "random_password" "redshift" {

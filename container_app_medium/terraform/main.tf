@@ -21,7 +21,7 @@ resource "aws_ecs_cluster" "main" {
 }
 
 resource "aws_ecr_repository" "app" {
-  name                 = local.app_name_unique
+  name = local.app_name_unique
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -95,8 +95,8 @@ resource "aws_iam_role" "ecs_task_execution" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })

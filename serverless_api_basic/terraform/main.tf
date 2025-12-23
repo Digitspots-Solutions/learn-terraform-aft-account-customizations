@@ -2,16 +2,16 @@ resource "aws_dynamodb_table" "data" {
   name         = "${var.app_name}-data"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "id"
-  
+
   attribute {
     name = "id"
     type = "S"
   }
-  
+
   server_side_encryption {
     enabled = true
   }
-  
+
   point_in_time_recovery {
     enabled = true
   }
@@ -22,8 +22,8 @@ resource "aws_iam_role" "lambda" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
     }]
   })

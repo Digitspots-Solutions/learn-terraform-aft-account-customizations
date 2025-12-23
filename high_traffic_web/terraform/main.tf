@@ -8,9 +8,9 @@ data "terraform_remote_state" "network" {
 }
 
 resource "aws_launch_template" "web" {
-  name_prefix   = "${var.app_name}-"
-  image_id      = data.aws_ami.amazon_linux.id
-  instance_type = var.instance_type
+  name_prefix            = "${var.app_name}-"
+  image_id               = data.aws_ami.amazon_linux.id
+  instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.web.id]
   user_data = base64encode(<<-EOF
     #!/bin/bash
