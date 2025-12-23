@@ -1,6 +1,7 @@
 variable "app_name" {
   type    = string
   default = "myapp"
+  description = "Application name - will be suffixed with account ID"
 }
 
 variable "cpu" {

@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -7,13 +9,17 @@ data "terraform_remote_state" "network" {
   }
 }
 
+locals {
+  db_name_unique = "${var.db_name}-${data.aws_caller_identity.current.account_id}"
+}
+
 resource "aws_db_subnet_group" "main" {
-  name       = "${var.db_name}-subnet-group"
+  name       = "${local.db_name_unique}-subnet-group"
   subnet_ids = data.terraform_remote_state.network.outputs.private_subnet_ids
 }
 
 resource "aws_security_group" "rds" {
-  name   = "${var.db_name}-rds"
+  name   = "${local.db_name_unique}-rds"
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
   ingress {
     from_port   = 5432
@@ -24,7 +30,7 @@ resource "aws_security_group" "rds" {
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier             = var.db_name
+  identifier             = local.db_name_unique
   engine                 = "postgres"
   engine_version         = "15.4"
   instance_class         = var.instance_class
@@ -45,12 +51,10 @@ resource "random_password" "db" {
 }
 
 resource "aws_secretsmanager_secret" "db_password" {
-  name = "${var.db_name}-password"
+  name = "${local.db_name_unique}-password"
 }
 
 resource "aws_secretsmanager_secret_version" "db_password" {
   secret_id     = aws_secretsmanager_secret.db_password.id
   secret_string = random_password.db.result
 }
-
-data "aws_caller_identity" "current" {}

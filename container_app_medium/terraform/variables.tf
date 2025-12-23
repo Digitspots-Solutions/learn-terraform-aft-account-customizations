@@ -1,6 +1,6 @@
 variable "app_name" {
   type    = string
-  default = "myapp"
+  default = "myapp-${data.aws_caller_identity.current.account_id}"
 }
 
 variable "cpu" {

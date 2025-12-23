@@ -1,3 +1,9 @@
+data "aws_caller_identity" "current" {}
+
+locals {
+  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}"
+}
+
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -8,7 +14,7 @@ data "terraform_remote_state" "network" {
 }
 
 resource "aws_ecs_cluster" "main" {
-  name = "${var.app_name}-cluster"
+  name = "${local.app_name_unique}-cluster"
   setting {
     name  = "containerInsights"
     value = "enabled"
@@ -16,14 +22,14 @@ resource "aws_ecs_cluster" "main" {
 }
 
 resource "aws_ecr_repository" "app" {
-  name                 = var.app_name
+  name                 = local.app_name_unique
   image_scanning_configuration {
     scan_on_push = true
   }
 }
 
 resource "aws_security_group" "alb" {
-  name   = "${var.app_name}-alb"
+  name   = "${local.app_name_unique}-alb"
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
   ingress {
     from_port   = 80
@@ -40,7 +46,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group" "ecs" {
-  name   = "${var.app_name}-ecs"
+  name   = "${local.app_name_unique}-ecs"
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
   ingress {
     from_port       = 8080
@@ -57,7 +63,7 @@ resource "aws_security_group" "ecs" {
 }
 
 resource "aws_lb" "main" {
-  name               = "${var.app_name}-alb"
+  name               = "${local.app_name_unique}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -65,7 +71,7 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "main" {
-  name        = "${var.app_name}-tg"
+  name        = "${local.app_name_unique}-tg"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
@@ -86,7 +92,7 @@ resource "aws_lb_listener" "main" {
 }
 
 resource "aws_iam_role" "ecs_task_execution" {
-  name = "${var.app_name}-ecs-execution"
+  name = "${local.app_name_unique}-ecs-execution"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -103,7 +109,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 }
 
 resource "aws_ecs_task_definition" "main" {
-  family                   = var.app_name
+  family                   = local.app_name_unique
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
@@ -128,12 +134,12 @@ resource "aws_ecs_task_definition" "main" {
 }
 
 resource "aws_cloudwatch_log_group" "main" {
-  name              = "/ecs/${var.app_name}"
+  name              = "/ecs/${local.app_name_unique}"
   retention_in_days = 7
 }
 
 resource "aws_ecs_service" "main" {
-  name            = var.app_name
+  name            = local.app_name_unique
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.main.arn
   desired_count   = var.task_count
@@ -149,5 +155,3 @@ resource "aws_ecs_service" "main" {
     container_port   = 8080
   }
 }
-
-data "aws_caller_identity" "current" {}

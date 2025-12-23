@@ -1,6 +1,6 @@
 variable "db_name" {
   type    = string
-  default = "mydb"
+  default = "mydb-${data.aws_caller_identity.current.account_id}"
 }
 
 variable "instance_class" {
