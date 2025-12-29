@@ -15,7 +15,7 @@ variable "master_username" {
 
 variable "node_type" {
   type    = string
-  default = "dc2.large"
+  default = "ra3.xlplus"  # dc2.large is deprecated, ra3.xlplus is the smallest current option
 }
 
 variable "number_of_nodes" {
