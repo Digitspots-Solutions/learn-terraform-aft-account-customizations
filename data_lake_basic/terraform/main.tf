@@ -48,6 +48,15 @@ resource "aws_iam_role_policy" "glue_s3" {
   })
 }
 
+# Wait for IAM role to propagate (AWS eventual consistency)
+resource "time_sleep" "wait_for_glue_role" {
+  depends_on = [
+    aws_iam_role_policy_attachment.glue,
+    aws_iam_role_policy.glue_s3
+  ]
+  create_duration = "10s"
+}
+
 resource "aws_glue_crawler" "main" {
   name          = "${var.project_name}-crawler"
   role          = aws_iam_role.glue.arn
@@ -55,6 +64,8 @@ resource "aws_glue_crawler" "main" {
   s3_target {
     path = "s3://${aws_s3_bucket.raw.bucket}/"
   }
+  
+  depends_on = [time_sleep.wait_for_glue_role]
 }
 
 resource "aws_athena_workgroup" "main" {
