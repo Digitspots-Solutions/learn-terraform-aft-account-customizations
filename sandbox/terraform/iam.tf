@@ -1,6 +1,7 @@
 # Portal Automation Role - allows portal to deploy infrastructure in this account
-# This role is CREATED by AFT when the account is provisioned
-# The portal uses this role to deploy infrastructure stacks
+# This role is CREATED by AFT when the account is FIRST provisioned
+# DO NOT change this to a data source - new accounts need this role created!
+# The "sandbox" folder should NOT be a deployable stack from the portal
 
 resource "aws_iam_role" "portal_automation" {
   name = "PortalAutomationRole"
