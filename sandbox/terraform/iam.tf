@@ -1,20 +1,38 @@
 # Portal Automation Role - allows portal to deploy infrastructure in this account
-# NOTE: This role is created by the account-provisioning-customizations pipeline
-# We import it here to manage the policy attachment only
+# This role is created in EACH vended account by account-customizations
 
-# Import the existing role (created by provisioning customizations)
-data "aws_iam_role" "portal_automation" {
+resource "aws_iam_role" "portal_automation" {
   name = "PortalAutomationRole"
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = [
+            "arn:aws:iam::929557547206:role/opportunity-portal-dev-lambda-role",
+            "arn:aws:iam::929557547206:role/opportunity-portal-dev-codebuild-terraform"
+          ]
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          StringEquals = {
+            "sts:ExternalId" = "opportunity-portal-automation"
+          }
+        }
+      }
+    ]
+  })
 }
 
-# Ensure AdministratorAccess is attached
-# This is idempotent - if already attached, Terraform will not re-attach
+# Attach AdministratorAccess for full infrastructure deployment capabilities
 resource "aws_iam_role_policy_attachment" "portal_automation_admin" {
-  role       = data.aws_iam_role.portal_automation.name
+  role       = aws_iam_role.portal_automation.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
 output "portal_automation_role_arn" {
-  value       = data.aws_iam_role.portal_automation.arn
+  value       = aws_iam_role.portal_automation.arn
   description = "ARN of the Portal Automation Role"
 }
