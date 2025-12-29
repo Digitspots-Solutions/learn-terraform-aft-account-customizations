@@ -1,3 +1,7 @@
+locals {
+  app_name_unique = "${local.app_name_unique}-${data.aws_caller_identity.current.account_id}"
+}
+
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -8,7 +12,7 @@ data "terraform_remote_state" "network" {
 }
 
 resource "aws_launch_template" "web" {
-  name_prefix            = "${var.app_name}-"
+  name_prefix            = "${local.app_name_unique}-"
   image_id               = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.web.id]
@@ -24,7 +28,7 @@ resource "aws_launch_template" "web" {
 }
 
 resource "aws_autoscaling_group" "web" {
-  name                = "${var.app_name}-asg"
+  name                = "${local.app_name_unique}-asg"
   vpc_zone_identifier = data.terraform_remote_state.network.outputs.private_subnet_ids
   target_group_arns   = [aws_lb_target_group.web.arn]
   health_check_type   = "ELB"
@@ -38,7 +42,7 @@ resource "aws_autoscaling_group" "web" {
 }
 
 resource "aws_security_group" "alb" {
-  name   = "${var.app_name}-alb"
+  name   = "${local.app_name_unique}-alb"
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
   ingress {
     from_port   = 80
@@ -55,7 +59,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group" "web" {
-  name   = "${var.app_name}-web"
+  name   = "${local.app_name_unique}-web"
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
   ingress {
     from_port       = 80
@@ -72,7 +76,7 @@ resource "aws_security_group" "web" {
 }
 
 resource "aws_lb" "web" {
-  name               = "${var.app_name}-alb"
+  name               = "${local.app_name_unique}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -80,7 +84,7 @@ resource "aws_lb" "web" {
 }
 
 resource "aws_lb_target_group" "web" {
-  name     = "${var.app_name}-tg"
+  name     = "${local.app_name_unique}-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = data.terraform_remote_state.network.outputs.vpc_id

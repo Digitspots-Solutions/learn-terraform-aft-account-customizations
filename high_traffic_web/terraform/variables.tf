@@ -1,6 +1,6 @@
 variable "app_name" {
   type    = string
-  default = "webapp-${data.aws_caller_identity.current.account_id}"
+  default = "webapp"
 }
 
 variable "instance_type" {
