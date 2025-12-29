@@ -1,6 +1,6 @@
 variable "app_name" {
   type    = string
-  default = "myapp"
+  default = "myapp-med"  # Unique name to avoid collision with container_app_small
 }
 
 variable "cpu" {

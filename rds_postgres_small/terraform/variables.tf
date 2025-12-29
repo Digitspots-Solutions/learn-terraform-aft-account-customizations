@@ -1,6 +1,6 @@
 variable "db_name" {
   type    = string
-  default = "mydb"
+  default = "mydb-sm"
 }
 
 variable "instance_class" {
