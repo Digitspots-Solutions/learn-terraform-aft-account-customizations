@@ -32,7 +32,7 @@ resource "aws_security_group" "rds" {
 resource "aws_db_instance" "postgres" {
   identifier              = local.db_name_unique
   engine                  = "postgres"
-  engine_version          = "15.5"
+  engine_version          = "15.7"
   instance_class          = var.instance_class
   allocated_storage       = var.storage_gb
   storage_encrypted       = true
@@ -51,7 +51,8 @@ resource "random_password" "db" {
 }
 
 resource "aws_secretsmanager_secret" "db_password" {
-  name = "${local.db_name_unique}-password"
+  name                    = "${local.db_name_unique}-password"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "db_password" {
