@@ -46,8 +46,9 @@ resource "aws_db_instance" "postgres" {
 }
 
 resource "random_password" "db" {
-  length  = 16
-  special = true
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"  # RDS doesn't allow: / @ " space
 }
 
 resource "aws_secretsmanager_secret" "db_password" {

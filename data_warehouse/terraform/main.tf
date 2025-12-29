@@ -38,8 +38,9 @@ resource "aws_redshift_cluster" "main" {
 }
 
 resource "random_password" "redshift" {
-  length  = 16
-  special = true
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"  # Redshift doesn't allow: / @ " ' space
 }
 
 resource "aws_secretsmanager_secret" "redshift" {
