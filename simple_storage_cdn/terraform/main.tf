@@ -3,7 +3,7 @@
 
 # S3 Bucket for storage
 resource "aws_s3_bucket" "storage" {
-  bucket = "simple-storage-${data.aws_caller_identity.current.account_id}"
+  bucket = "simple-storage-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
 }
 
 resource "aws_s3_bucket_versioning" "storage" {
@@ -104,3 +104,4 @@ resource "aws_s3_bucket_policy" "storage" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}

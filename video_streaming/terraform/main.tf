@@ -2,11 +2,11 @@
 # Requires MediaLive and MediaPackage setup
 
 resource "aws_s3_bucket" "video_source" {
-  bucket = "${var.project_name}-source-${data.aws_caller_identity.current.account_id}"
+  bucket = "${var.project_name}-source-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
 }
 
 resource "aws_s3_bucket" "video_output" {
-  bucket = "${var.project_name}-output-${data.aws_caller_identity.current.account_id}"
+  bucket = "${var.project_name}-output-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
 }
 
 resource "aws_cloudfront_distribution" "video" {
@@ -41,3 +41,4 @@ resource "aws_cloudfront_origin_access_identity" "video" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
