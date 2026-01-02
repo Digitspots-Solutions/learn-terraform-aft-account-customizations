@@ -20,8 +20,14 @@ resource "aws_eks_cluster" "main" {
   depends_on = [aws_iam_role_policy_attachment.cluster]
 }
 
+locals {
+  # Use last 8 chars of account ID for unique but short names
+  account_short = substr(data.aws_caller_identity.current.account_id, -8, 8)
+  region_short  = replace(replace(data.aws_region.current.name, "us-", ""), "west-", "w")
+}
+
 resource "aws_iam_role" "cluster" {
-  name = "${var.cluster_name}-cluster-${data.aws_region.current.name}"
+  name = "${var.cluster_name}-cl-${local.account_short}-${local.region_short}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -38,7 +44,7 @@ resource "aws_iam_role_policy_attachment" "cluster" {
 }
 
 resource "aws_iam_role" "node" {
-  name = "${var.cluster_name}-node-${data.aws_region.current.name}"
+  name = "${var.cluster_name}-nd-${local.account_short}-${local.region_short}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -66,7 +72,7 @@ resource "aws_iam_role_policy_attachment" "node_registry" {
 
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "${var.cluster_name}-nodes-${data.aws_region.current.name}"
+  node_group_name = "${var.cluster_name}-ng-${local.account_short}"
   node_role_arn   = aws_iam_role.node.arn
   subnet_ids      = data.terraform_remote_state.network.outputs.private_subnet_ids
   instance_types  = [var.instance_type]

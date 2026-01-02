@@ -5,6 +5,10 @@
 
 locals {
   app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}"
+  # Short name for ALB/TG (max 32 chars): use last 8 chars of account ID + short region code
+  account_short   = substr(data.aws_caller_identity.current.account_id, -8, 8)
+  region_short    = replace(replace(data.aws_region.current.name, "us-", ""), "west-", "w")
+  app_name_short  = "${var.app_name}-${local.account_short}-${local.region_short}"
 }
 
 data "terraform_remote_state" "network" {
@@ -178,7 +182,7 @@ resource "aws_security_group" "web" {
 }
 
 resource "aws_lb" "web" {
-  name               = "${local.app_name_unique}-alb"
+  name               = "${local.app_name_short}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -191,10 +195,12 @@ resource "aws_lb" "web" {
     prefix  = "alb-logs"
     enabled = true
   }
+  
+  depends_on = [aws_s3_bucket_policy.logs]
 }
 
 resource "aws_lb_target_group" "web" {
-  name     = "${local.app_name_unique}-tg"
+  name     = "${local.app_name_short}-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = data.terraform_remote_state.network.outputs.vpc_id
@@ -235,13 +241,13 @@ resource "aws_wafv2_web_acl" "web" {
     allow {}
   }
   
-  # Rate limiting rule
+  # Rate limiting rule - uses action (not override_action which is only for managed rules)
   rule {
     name     = "RateLimitRule"
     priority = 1
     
-    override_action {
-      none {}
+    action {
+      block {}
     }
     
     statement {
@@ -434,12 +440,51 @@ resource "aws_cloudfront_distribution" "web" {
 
 # Logging bucket with lifecycle
 resource "aws_s3_bucket" "logs" {
-  bucket = "${local.app_name_unique}-logs"
+  bucket = "${local.app_name_short}-logs"
 }
 
-resource "aws_s3_bucket_acl" "logs" {
+# Enable bucket ownership controls (required for ALB logging)
+resource "aws_s3_bucket_ownership_controls" "logs" {
   bucket = aws_s3_bucket.logs.id
-  acl    = "log-delivery-write"
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+# Bucket policy for ALB access logging (ELB service account)
+resource "aws_s3_bucket_policy" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowELBLogging"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::127311923021:root"  # ELB service account for us-east-1
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.logs.arn}/alb-logs/*"
+      },
+      {
+        Sid       = "AllowCloudFrontLogging"
+        Effect    = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.logs.arn}/cloudfront-logs/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      }
+    ]
+  })
+  
+  depends_on = [aws_s3_bucket_ownership_controls.logs]
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "logs" {
