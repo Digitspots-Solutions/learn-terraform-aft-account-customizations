@@ -1,11 +1,11 @@
 resource "aws_sagemaker_notebook_instance" "main" {
-  name          = var.notebook_name
+  name          = "${var.notebook_name}-${data.aws_region.current.name}"
   instance_type = var.instance_type
   role_arn      = aws_iam_role.sagemaker.arn
 }
 
 resource "aws_iam_role" "sagemaker" {
-  name = "${var.notebook_name}-sagemaker"
+  name = "${var.notebook_name}-sagemaker-${data.aws_region.current.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

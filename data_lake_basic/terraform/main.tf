@@ -11,11 +11,11 @@ resource "aws_s3_bucket" "athena_results" {
 }
 
 resource "aws_glue_catalog_database" "main" {
-  name = "${var.project_name}_db"
+  name = "${var.project_name}_db_${data.aws_region.current.name}"
 }
 
 resource "aws_iam_role" "glue" {
-  name = "${var.project_name}-glue"
+  name = "${var.project_name}-glue-${data.aws_region.current.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -58,7 +58,7 @@ resource "time_sleep" "wait_for_glue_role" {
 }
 
 resource "aws_glue_crawler" "main" {
-  name          = "${var.project_name}-crawler"
+  name          = "${var.project_name}-crawler-${data.aws_region.current.name}"
   role          = aws_iam_role.glue.arn
   database_name = aws_glue_catalog_database.main.name
   s3_target {
@@ -69,7 +69,7 @@ resource "aws_glue_crawler" "main" {
 }
 
 resource "aws_athena_workgroup" "main" {
-  name = var.project_name
+  name = "${var.project_name}-${data.aws_region.current.name}"
   configuration {
     result_configuration {
       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/"
