@@ -440,7 +440,8 @@ resource "aws_cloudfront_distribution" "web" {
 
 # Logging bucket with lifecycle
 resource "aws_s3_bucket" "logs" {
-  bucket = "${local.app_name_short}-logs"
+  bucket        = "${local.app_name_short}-logs"
+  force_destroy = true  # Allow deletion even when bucket has objects (for stack cleanup)
 }
 
 # Enable bucket ownership controls (required for ALB logging)

@@ -24,6 +24,7 @@ variable "multi_az" {
 }
 
 variable "skip_final_snapshot" {
-  type    = bool
-  default = false
+  type        = bool
+  default     = true  # Set to true to allow clean destruction via portal
+  description = "Skip final snapshot on destroy. Set to false and provide final_snapshot_identifier for production."
 }
