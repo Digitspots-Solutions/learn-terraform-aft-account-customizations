@@ -1,3 +1,6 @@
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 resource "aws_dynamodb_table" "data" {
   name         = "${var.app_name}-data"
   billing_mode = "PAY_PER_REQUEST"
