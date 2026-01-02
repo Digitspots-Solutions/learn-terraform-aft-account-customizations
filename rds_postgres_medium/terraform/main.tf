@@ -1,6 +1,12 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+# Get the latest available PostgreSQL 16.x version in this region
+data "aws_rds_engine_version" "postgres" {
+  engine             = "postgres"
+  preferred_versions = ["16.6", "16.5", "16.4", "16.3", "16.2", "16.1", "15.8", "15.7", "15.6"]
+}
+
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -33,7 +39,7 @@ resource "aws_security_group" "rds" {
 resource "aws_db_instance" "postgres" {
   identifier              = local.db_name_unique
   engine                  = "postgres"
-  engine_version          = "16.4"
+  engine_version          = data.aws_rds_engine_version.postgres.version
   instance_class          = var.instance_class
   allocated_storage       = var.storage_gb
   storage_encrypted       = true
