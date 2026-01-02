@@ -150,4 +150,3 @@ output "instance_id" {
   description = "Web server instance ID"
 }
 
-

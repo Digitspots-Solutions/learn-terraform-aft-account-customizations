@@ -10,4 +10,3 @@ variable "instance_type" {
   description = "EC2 instance type (t3.micro for lowest cost)"
 }
 
-

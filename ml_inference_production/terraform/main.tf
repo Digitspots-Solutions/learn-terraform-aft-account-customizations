@@ -2,7 +2,7 @@
 # Requires trained model artifacts
 
 resource "aws_s3_bucket" "models" {
-  bucket = "${var.project_name}-models-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  bucket = "${var.project_name}-models-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_iam_role" "sagemaker" {
@@ -23,4 +23,3 @@ resource "aws_iam_role_policy_attachment" "sagemaker" {
 }
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}

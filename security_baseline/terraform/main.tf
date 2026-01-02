@@ -9,7 +9,7 @@ resource "aws_securityhub_account" "main" {}
 # S3 bucket for CloudTrail (optional - if you need account-specific trails)
 # Control Tower already provides organization-level CloudTrail
 resource "aws_s3_bucket" "cloudtrail" {
-  bucket = "cloudtrail-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  bucket = "cloudtrail-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_s3_bucket_versioning" "cloudtrail" {
@@ -77,4 +77,3 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
 # These resources will fail with AccessDeniedException
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}

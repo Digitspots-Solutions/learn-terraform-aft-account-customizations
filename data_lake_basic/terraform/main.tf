@@ -1,13 +1,13 @@
 resource "aws_s3_bucket" "raw" {
-  bucket = "${var.project_name}-raw-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  bucket = "${var.project_name}-raw-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_s3_bucket" "processed" {
-  bucket = "${var.project_name}-processed-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  bucket = "${var.project_name}-processed-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_s3_bucket" "athena_results" {
-  bucket = "${var.project_name}-athena-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  bucket = "${var.project_name}-athena-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_glue_catalog_database" "main" {
@@ -78,4 +78,3 @@ resource "aws_athena_workgroup" "main" {
 }
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}

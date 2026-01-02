@@ -201,4 +201,3 @@ output "asg_name" {
   description = "Auto Scaling Group name"
 }
 
-

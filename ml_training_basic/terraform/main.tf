@@ -22,8 +22,7 @@ resource "aws_iam_role_policy_attachment" "sagemaker" {
 }
 
 resource "aws_s3_bucket" "ml_data" {
-  bucket = "${var.notebook_name}-ml-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  bucket = "${var.notebook_name}-ml-${data.aws_caller_identity.current.account_id}"
 }
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
