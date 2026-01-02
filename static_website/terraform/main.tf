@@ -1,8 +1,9 @@
 # Get current AWS account ID for unique bucket naming
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 resource "aws_s3_bucket" "website" {
-  bucket = "${var.domain_name}-website-${data.aws_caller_identity.current.account_id}"
+  bucket = "${var.domain_name}-website-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
 }
 
 resource "aws_s3_bucket_website_configuration" "website" {
