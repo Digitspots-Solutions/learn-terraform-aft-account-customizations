@@ -33,7 +33,7 @@ resource "aws_security_group" "rds" {
 resource "aws_db_instance" "postgres" {
   identifier              = local.db_name_unique
   engine                  = "postgres"
-  engine_version          = "15.7"
+  engine_version          = "16.4"
   instance_class          = var.instance_class
   allocated_storage       = var.storage_gb
   storage_encrypted       = true

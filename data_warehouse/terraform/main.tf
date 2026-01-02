@@ -54,5 +54,3 @@ resource "aws_secretsmanager_secret_version" "redshift" {
   secret_id     = aws_secretsmanager_secret.redshift.id
   secret_string = random_password.redshift.result
 }
-
-data "aws_caller_identity" "current" {}
