@@ -2,10 +2,6 @@
 # Single t3.micro instance behind an ALB
 # Perfect for: Personal sites, blogs, small business websites
 
-locals {
-  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}"
-}
-
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -15,11 +11,20 @@ data "terraform_remote_state" "network" {
   }
 }
 
+locals {
+  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}"
+  
+  # Safe lookups with fallbacks for destroy operations when network is already gone
+  vpc_id             = try(data.terraform_remote_state.network.outputs.vpc_id, "")
+  private_subnet_ids = try(data.terraform_remote_state.network.outputs.private_subnet_ids, [])
+  public_subnet_ids  = try(data.terraform_remote_state.network.outputs.public_subnet_ids, [])
+}
+
 # Single EC2 instance (no auto-scaling for cost savings)
 resource "aws_instance" "web" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  subnet_id              = data.terraform_remote_state.network.outputs.private_subnet_ids[0]
+  subnet_id              = length(local.private_subnet_ids) > 0 ? local.private_subnet_ids[0] : ""
   vpc_security_group_ids = [aws_security_group.web.id]
   
   user_data = base64encode(<<-EOF
@@ -40,7 +45,7 @@ resource "aws_instance" "web" {
 
 resource "aws_security_group" "alb" {
   name   = "${local.app_name_unique}-alb"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   
   ingress {
     from_port   = 80
@@ -63,7 +68,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "web" {
   name   = "${local.app_name_unique}-web"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   
   ingress {
     from_port       = 80
@@ -89,7 +94,7 @@ resource "aws_lb" "web" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = data.terraform_remote_state.network.outputs.public_subnet_ids
+  subnets            = local.public_subnet_ids
   
   tags = {
     Name = "${local.app_name_unique}-alb"

@@ -10,19 +10,26 @@ data "terraform_remote_state" "network" {
   }
 }
 
+locals {
+  # Safe lookups with fallbacks for destroy operations when network is already gone
+  vpc_id             = try(data.terraform_remote_state.network.outputs.vpc_id, "")
+  vpc_cidr           = try(data.terraform_remote_state.network.outputs.vpc_cidr, "10.0.0.0/16")
+  private_subnet_ids = try(data.terraform_remote_state.network.outputs.private_subnet_ids, [])
+}
+
 resource "aws_redshift_subnet_group" "main" {
   name       = var.cluster_name
-  subnet_ids = data.terraform_remote_state.network.outputs.private_subnet_ids
+  subnet_ids = local.private_subnet_ids
 }
 
 resource "aws_security_group" "redshift" {
   name   = "${var.cluster_name}-redshift"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   ingress {
     from_port   = 5439
     to_port     = 5439
     protocol    = "tcp"
-    cidr_blocks = [data.terraform_remote_state.network.outputs.vpc_cidr]
+    cidr_blocks = [local.vpc_cidr]
   }
 }
 

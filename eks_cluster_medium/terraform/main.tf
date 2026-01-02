@@ -7,23 +7,24 @@ data "terraform_remote_state" "network" {
   }
 }
 
+locals {
+  # Use last 8 chars of account ID for unique but short names
+  account_short = substr(data.aws_caller_identity.current.account_id, -8, 8)
+  region_short  = replace(replace(data.aws_region.current.name, "us-", ""), "west-", "w")
+  
+  # Safe lookups with fallbacks for destroy operations when network is already gone
+  private_subnet_ids = try(data.terraform_remote_state.network.outputs.private_subnet_ids, [])
+  public_subnet_ids  = try(data.terraform_remote_state.network.outputs.public_subnet_ids, [])
+}
+
 resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
   role_arn = aws_iam_role.cluster.arn
   version  = "1.32"  # Latest stable - Jan 2026
   vpc_config {
-    subnet_ids = concat(
-      data.terraform_remote_state.network.outputs.public_subnet_ids,
-      data.terraform_remote_state.network.outputs.private_subnet_ids
-    )
+    subnet_ids = concat(local.public_subnet_ids, local.private_subnet_ids)
   }
   depends_on = [aws_iam_role_policy_attachment.cluster]
-}
-
-locals {
-  # Use last 8 chars of account ID for unique but short names
-  account_short = substr(data.aws_caller_identity.current.account_id, -8, 8)
-  region_short  = replace(replace(data.aws_region.current.name, "us-", ""), "west-", "w")
 }
 
 resource "aws_iam_role" "cluster" {
@@ -74,7 +75,7 @@ resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.cluster_name}-ng-${local.account_short}"
   node_role_arn   = aws_iam_role.node.arn
-  subnet_ids      = data.terraform_remote_state.network.outputs.private_subnet_ids
+  subnet_ids      = local.private_subnet_ids
   instance_types  = [var.instance_type]
   scaling_config {
     desired_size = var.node_count

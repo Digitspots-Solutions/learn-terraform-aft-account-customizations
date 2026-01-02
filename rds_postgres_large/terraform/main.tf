@@ -18,21 +18,26 @@ data "terraform_remote_state" "network" {
 
 locals {
   db_name_unique = "${var.db_name}-${data.aws_caller_identity.current.account_id}"
+  
+  # Safe lookups with fallbacks for destroy operations when network is already gone
+  vpc_id             = try(data.terraform_remote_state.network.outputs.vpc_id, "")
+  vpc_cidr           = try(data.terraform_remote_state.network.outputs.vpc_cidr, "10.0.0.0/16")
+  private_subnet_ids = try(data.terraform_remote_state.network.outputs.private_subnet_ids, [])
 }
 
 resource "aws_db_subnet_group" "main" {
   name       = "${local.db_name_unique}-subnet-group"
-  subnet_ids = data.terraform_remote_state.network.outputs.private_subnet_ids
+  subnet_ids = local.private_subnet_ids
 }
 
 resource "aws_security_group" "rds" {
   name   = "${local.db_name_unique}-rds"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   ingress {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = [data.terraform_remote_state.network.outputs.vpc_cidr]
+    cidr_blocks = [local.vpc_cidr]
   }
 }
 

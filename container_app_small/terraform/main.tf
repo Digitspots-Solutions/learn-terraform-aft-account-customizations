@@ -1,14 +1,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-locals {
-  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
-  # Short name for ALB/TG (max 32 chars): use last 8 chars of account ID + short region code
-  account_short   = substr(data.aws_caller_identity.current.account_id, -8, 8)
-  region_short    = replace(replace(data.aws_region.current.name, "us-", ""), "west-", "w")
-  app_name_short  = "${var.app_name}-${local.account_short}-${local.region_short}"
-}
-
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -16,6 +8,19 @@ data "terraform_remote_state" "network" {
     key    = "baseline_networking/${data.aws_region.current.name}/terraform.tfstate"
     region = "us-east-1"
   }
+}
+
+locals {
+  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+  # Short name for ALB/TG (max 32 chars): use last 8 chars of account ID + short region code
+  account_short   = substr(data.aws_caller_identity.current.account_id, -8, 8)
+  region_short    = replace(replace(data.aws_region.current.name, "us-", ""), "west-", "w")
+  app_name_short  = "${var.app_name}-${local.account_short}-${local.region_short}"
+  
+  # Safe lookups with fallbacks for destroy operations when network is already gone
+  vpc_id             = try(data.terraform_remote_state.network.outputs.vpc_id, "")
+  private_subnet_ids = try(data.terraform_remote_state.network.outputs.private_subnet_ids, [])
+  public_subnet_ids  = try(data.terraform_remote_state.network.outputs.public_subnet_ids, [])
 }
 
 resource "aws_ecs_cluster" "main" {
@@ -35,7 +40,7 @@ resource "aws_ecr_repository" "app" {
 
 resource "aws_security_group" "alb" {
   name   = "${local.app_name_unique}-alb"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   ingress {
     from_port   = 80
     to_port     = 80
@@ -52,7 +57,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ecs" {
   name   = "${local.app_name_unique}-ecs"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   ingress {
     from_port       = 8080
     to_port         = 8080
@@ -72,14 +77,14 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = data.terraform_remote_state.network.outputs.public_subnet_ids
+  subnets            = local.public_subnet_ids
 }
 
 resource "aws_lb_target_group" "main" {
   name        = "${local.app_name_short}-tg"
   port        = 8080
   protocol    = "HTTP"
-  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id      = local.vpc_id
   target_type = "ip"
   health_check {
     path = "/health"
@@ -150,7 +155,7 @@ resource "aws_ecs_service" "main" {
   desired_count   = var.task_count
   launch_type     = "FARGATE"
   network_configuration {
-    subnets          = data.terraform_remote_state.network.outputs.private_subnet_ids
+    subnets          = local.private_subnet_ids
     security_groups  = [aws_security_group.ecs.id]
     assign_public_ip = false
   }

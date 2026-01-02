@@ -1,7 +1,3 @@
-locals {
-  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}"
-}
-
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -9,6 +5,15 @@ data "terraform_remote_state" "network" {
     key    = "baseline_networking/${data.aws_region.current.name}/terraform.tfstate"
     region = "us-east-1"
   }
+}
+
+locals {
+  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}"
+  
+  # Safe lookups with fallbacks for destroy operations when network is already gone
+  vpc_id             = try(data.terraform_remote_state.network.outputs.vpc_id, "")
+  private_subnet_ids = try(data.terraform_remote_state.network.outputs.private_subnet_ids, [])
+  public_subnet_ids  = try(data.terraform_remote_state.network.outputs.public_subnet_ids, [])
 }
 
 resource "aws_launch_template" "web" {
@@ -29,7 +34,7 @@ resource "aws_launch_template" "web" {
 
 resource "aws_autoscaling_group" "web" {
   name                = "${local.app_name_unique}-asg"
-  vpc_zone_identifier = data.terraform_remote_state.network.outputs.private_subnet_ids
+  vpc_zone_identifier = local.private_subnet_ids
   target_group_arns   = [aws_lb_target_group.web.arn]
   health_check_type   = "ELB"
   min_size            = var.min_size
@@ -43,7 +48,7 @@ resource "aws_autoscaling_group" "web" {
 
 resource "aws_security_group" "alb" {
   name   = "${local.app_name_unique}-alb"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   ingress {
     from_port   = 80
     to_port     = 80
@@ -60,7 +65,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "web" {
   name   = "${local.app_name_unique}-web"
-  vpc_id = data.terraform_remote_state.network.outputs.vpc_id
+  vpc_id = local.vpc_id
   ingress {
     from_port       = 80
     to_port         = 80
@@ -80,7 +85,7 @@ resource "aws_lb" "web" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = data.terraform_remote_state.network.outputs.public_subnet_ids
+  subnets            = local.public_subnet_ids
 }
 
 resource "aws_lb_target_group" "web" {
