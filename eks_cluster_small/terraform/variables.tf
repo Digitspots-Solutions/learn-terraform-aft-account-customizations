@@ -1,6 +1,6 @@
 variable "cluster_name" {
   type    = string
-  default = "mycluster"
+  default = "eks-small"
 }
 
 variable "instance_type" {

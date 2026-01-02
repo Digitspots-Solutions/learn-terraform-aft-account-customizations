@@ -10,7 +10,7 @@ data "terraform_remote_state" "network" {
 resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
   role_arn = aws_iam_role.cluster.arn
-  version  = "1.31"  # Extended support - updated Dec 2024
+  version  = "1.32"  # Latest stable - Jan 2026
   vpc_config {
     subnet_ids = concat(
       data.terraform_remote_state.network.outputs.public_subnet_ids,
