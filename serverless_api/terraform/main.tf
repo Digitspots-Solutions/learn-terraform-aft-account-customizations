@@ -19,7 +19,7 @@ resource "aws_dynamodb_table" "api_table" {
 
 # Lambda Execution Role
 resource "aws_iam_role" "lambda_exec" {
-  name = "${var.api_name}-lambda-exec"
+  name = "${var.api_name}-lambda-exec-${data.aws_region.current.name}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -125,3 +125,4 @@ data "archive_file" "lambda" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}

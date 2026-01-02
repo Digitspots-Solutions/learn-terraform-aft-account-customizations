@@ -18,7 +18,7 @@ resource "aws_dynamodb_table" "data" {
 }
 
 resource "aws_iam_role" "lambda" {
-  name = "${var.app_name}-lambda"
+  name = "${var.app_name}-lambda-${data.aws_region.current.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

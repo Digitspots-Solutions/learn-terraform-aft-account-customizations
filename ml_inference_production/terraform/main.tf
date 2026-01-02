@@ -6,7 +6,7 @@ resource "aws_s3_bucket" "models" {
 }
 
 resource "aws_iam_role" "sagemaker" {
-  name = "${var.project_name}-sagemaker"
+  name = "${var.project_name}-sagemaker-${data.aws_region.current.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

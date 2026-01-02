@@ -1,6 +1,6 @@
 
 locals {
-  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}"
+  app_name_unique = "${var.app_name}-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
 }
 
 data "terraform_remote_state" "network" {

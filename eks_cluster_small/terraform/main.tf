@@ -21,7 +21,7 @@ resource "aws_eks_cluster" "main" {
 }
 
 resource "aws_iam_role" "cluster" {
-  name = "${var.cluster_name}-cluster"
+  name = "${var.cluster_name}-cluster-${data.aws_region.current.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -38,7 +38,7 @@ resource "aws_iam_role_policy_attachment" "cluster" {
 }
 
 resource "aws_iam_role" "node" {
-  name = "${var.cluster_name}-node"
+  name = "${var.cluster_name}-node-${data.aws_region.current.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -66,7 +66,7 @@ resource "aws_iam_role_policy_attachment" "node_registry" {
 
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "${var.cluster_name}-nodes"
+  node_group_name = "${var.cluster_name}-nodes-${data.aws_region.current.name}"
   node_role_arn   = aws_iam_role.node.arn
   subnet_ids      = data.terraform_remote_state.network.outputs.private_subnet_ids
   instance_types  = [var.instance_type]
@@ -83,3 +83,4 @@ resource "aws_eks_node_group" "main" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
