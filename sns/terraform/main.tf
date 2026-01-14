@@ -15,7 +15,7 @@ terraform {
     }
   }
   
-  backend "s3" {}
+  # Backend configured by buildspec.yml at runtime
 }
 
 provider "aws" {}

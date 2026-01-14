@@ -15,12 +15,7 @@ terraform {
       version = ">= 5.0"
     }
   }
-  
-  backend "s3" {}
-}
-
-provider "aws" {
-  # Region configured via backend
+  # Backend configured by buildspec.yml at runtime
 }
 
 data "aws_caller_identity" "current" {}
