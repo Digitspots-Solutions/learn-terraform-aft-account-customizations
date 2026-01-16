@@ -1,5 +1,6 @@
 # SQS Module Wrapper
 # Wraps terraform-aws-modules/sqs/aws for standardized SQS queue creation
+# Uses the module's NATIVE DLQ support - no separate module needed!
 
 terraform {
   required_version = ">= 1.5.0"
@@ -38,46 +39,19 @@ module "sqs" {
   visibility_timeout_seconds = var.visibility_timeout_seconds
 
   # Encryption
-  sqs_managed_sse_enabled   = var.kms_key_id == ""
-  kms_master_key_id         = var.kms_key_id != "" ? var.kms_key_id : null
+  sqs_managed_sse_enabled           = var.kms_key_id == ""
+  kms_master_key_id                 = var.kms_key_id != "" ? var.kms_key_id : null
   kms_data_key_reuse_period_seconds = var.kms_key_id != "" ? 300 : null
 
-  # Dead letter queue - set AFTER DLQ is created
-  # Note: redrive_policy is deprecated in module v4.x, use create_dlq instead
-  # But since we want control over DLQ settings, we create it separately
-  redrive_policy = var.create_dlq ? jsonencode({
-    deadLetterTargetArn = module.dlq[0].queue_arn
-    maxReceiveCount     = var.max_receive_count
-  }) : null
-
-  # Ensure DLQ exists before setting redrive policy
-  depends_on = [module.dlq]
+  # Dead Letter Queue - use module's native support!
+  create_dlq                    = var.create_dlq
+  dlq_message_retention_seconds = 1209600 # 14 days
+  redrive_policy = var.create_dlq ? {
+    maxReceiveCount = var.max_receive_count
+  } : {}
 
   tags = merge(var.tags, {
     Module    = "sqs"
     ManagedBy = "OpportunityPortal"
   })
 }
-
-# Dead Letter Queue
-module "dlq" {
-  source  = "terraform-aws-modules/sqs/aws"
-  version = "~> 4.0"
-  count   = var.create_dlq ? 1 : 0
-
-  name = var.fifo ? "${local.queue_name}-dlq.fifo" : "${local.queue_name}-dlq"
-
-  fifo_queue = var.fifo
-
-  message_retention_seconds = 1209600 # 14 days
-
-  sqs_managed_sse_enabled = var.kms_key_id == ""
-  kms_master_key_id       = var.kms_key_id != "" ? var.kms_key_id : null
-
-  tags = merge(var.tags, {
-    Module    = "sqs"
-    ManagedBy = "OpportunityPortal"
-    Purpose   = "DeadLetterQueue"
-  })
-}
-
