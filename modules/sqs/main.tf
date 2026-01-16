@@ -42,11 +42,16 @@ module "sqs" {
   kms_master_key_id         = var.kms_key_id != "" ? var.kms_key_id : null
   kms_data_key_reuse_period_seconds = var.kms_key_id != "" ? 300 : null
 
-  # Dead letter queue
+  # Dead letter queue - set AFTER DLQ is created
+  # Note: redrive_policy is deprecated in module v4.x, use create_dlq instead
+  # But since we want control over DLQ settings, we create it separately
   redrive_policy = var.create_dlq ? jsonencode({
     deadLetterTargetArn = module.dlq[0].queue_arn
     maxReceiveCount     = var.max_receive_count
   }) : null
+
+  # Ensure DLQ exists before setting redrive policy
+  depends_on = [module.dlq]
 
   tags = merge(var.tags, {
     Module    = "sqs"
