@@ -26,6 +26,10 @@ locals {
   vpc_cidr    = try(data.terraform_remote_state.vpc.outputs.vpc_cidr, "10.0.0.0/16")
 }
 
+resource "aws_iam_service_linked_role" "opensearch" {
+  aws_service_name = "opensearchservice.amazonaws.com"
+}
+
 resource "aws_security_group" "opensearch" {
   name   = "${local.name_prefix}-opensearch-sg"
   vpc_id = local.vpc_id
@@ -47,6 +51,7 @@ resource "aws_security_group" "opensearch" {
 }
 
 resource "aws_opensearch_domain" "main" {
+  depends_on     = [aws_iam_service_linked_role.opensearch]
   domain_name    = replace("${local.name_prefix}-search", "_", "-")
   engine_version = "OpenSearch_2.11"
 
