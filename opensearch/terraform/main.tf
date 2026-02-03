@@ -26,14 +26,16 @@ locals {
   vpc_cidr    = try(data.terraform_remote_state.vpc.outputs.vpc_cidr, "10.0.0.0/16")
 }
 
-resource "aws_iam_service_linked_role" "opensearch" {
-  aws_service_name = "opensearchservice.amazonaws.com"
-  
-  # Ignore errors if the role already exists or is being managed elsewhere
-  # This is common for service-linked roles
-  lifecycle {
-    ignore_changes = all
+resource "null_resource" "opensearch_slr" {
+  provisioner "local-exec" {
+    command = "aws iam create-service-linked-role --service-name opensearchservice.amazonaws.com || echo 'SLR already exists or error occurred'"
   }
+}
+
+# Small delay to ensure role propagation
+resource "time_sleep" "wait_for_slr" {
+  depends_on = [null_resource.opensearch_slr]
+  create_duration = "10s"
 }
 
 resource "aws_security_group" "opensearch" {
@@ -57,7 +59,7 @@ resource "aws_security_group" "opensearch" {
 }
 
 resource "aws_opensearch_domain" "main" {
-  depends_on     = [aws_iam_service_linked_role.opensearch]
+  depends_on     = [time_sleep.wait_for_slr]
   domain_name    = replace("${local.name_prefix}-search", "_", "-")
   engine_version = "OpenSearch_2.11"
 
