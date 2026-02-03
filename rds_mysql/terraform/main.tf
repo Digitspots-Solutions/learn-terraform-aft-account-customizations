@@ -52,6 +52,7 @@ module "rds" {
   port     = 3306
 
   multi_az               = var.multi_az
+  vpc_id                 = local.vpc_id
   db_subnet_group_name   = module.rds.db_subnet_group_id
   vpc_security_group_ids = [aws_security_group.rds.id]
   create_db_subnet_group = true

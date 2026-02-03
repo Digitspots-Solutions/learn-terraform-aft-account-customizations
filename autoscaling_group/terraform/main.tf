@@ -36,7 +36,7 @@ locals {
 
 module "asg" {
   source  = "terraform-aws-modules/autoscaling/aws"
-  version = "~> 7.0"
+  version = "~> 8.0"
 
   name = "${local.name_prefix}-asg"
 
@@ -44,6 +44,7 @@ module "asg" {
   max_size         = var.max_size
   desired_capacity = var.desired_capacity
 
+  vpc_id              = local.vpc_id
   vpc_zone_identifier = local.subnet_ids
 
   image_id      = data.aws_ami.amazon_linux.id

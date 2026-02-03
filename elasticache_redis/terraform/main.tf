@@ -38,6 +38,7 @@ module "elasticache" {
   engine_version = "7.0"
   node_type      = var.node_type
 
+  vpc_id     = local.vpc_id
   subnet_ids = local.subnet_ids
 
   security_group_rules = {
