@@ -7,22 +7,7 @@
 # - Core addons (CoreDNS, kube-proxy, VPC CNI, EBS CSI)
 # - IRSA enabled
 
-terraform {
-  required_version = ">= 1.5.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 5.0"
-    }
-  }
-  
-  # Backend configured by buildspec.yml at runtime
-}
-
-provider "aws" {}
-
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
+# Boilerplate removed - supplied by baseline.tf
 
 # Get VPC outputs from vpc_basic stack
 data "terraform_remote_state" "vpc" {
