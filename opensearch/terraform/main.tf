@@ -28,6 +28,12 @@ locals {
 
 resource "aws_iam_service_linked_role" "opensearch" {
   aws_service_name = "opensearchservice.amazonaws.com"
+  
+  # Ignore errors if the role already exists or is being managed elsewhere
+  # This is common for service-linked roles
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_security_group" "opensearch" {
