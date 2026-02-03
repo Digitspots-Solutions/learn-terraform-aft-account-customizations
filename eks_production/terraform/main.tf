@@ -30,7 +30,7 @@ data "terraform_remote_state" "vpc" {
   config = {
     bucket = "aft-backend-${data.aws_caller_identity.current.account_id}"
     key    = "vpc_production/terraform.tfstate"
-    region = data.aws_region.current.name
+    region = "us-east-1"
   }
 }
 
