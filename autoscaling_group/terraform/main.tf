@@ -41,6 +41,8 @@ module "asg" {
   name = "${local.name_prefix}-asg"
 
   min_size         = var.min_size
+  max_size         = var.max_size
+  desired_capacity = var.desired_capacity
   vpc_zone_identifier = local.subnet_ids
 
   image_id      = data.aws_ami.amazon_linux.id
