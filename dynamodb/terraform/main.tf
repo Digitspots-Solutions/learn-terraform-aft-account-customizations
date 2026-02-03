@@ -57,6 +57,8 @@ module "dynamodb" {
     Stack       = "dynamodb"
     ManagedBy   = "OpportunityPortal"
   }
+
+  kms_key_arn = null
 }
 
 output "table_name" {
