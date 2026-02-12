@@ -65,7 +65,7 @@ module "sqs" {
   visibility_timeout_seconds = var.visibility_timeout_seconds
 
   redrive_policy = var.create_dlq ? jsonencode({
-    deadLetterTargetArn = module.dlq[0].sqs_queue_arn
+    deadLetterTargetArn = module.dlq[0].queue_arn
     maxReceiveCount     = var.max_receive_count
   }) : null
 
@@ -81,7 +81,7 @@ output "queue_url" {
 }
 
 output "queue_arn" {
-  value = module.sqs.sqs_queue_arn
+  value = module.sqs.queue_arn
 }
 
 output "queue_name" {
@@ -93,5 +93,5 @@ output "dlq_url" {
 }
 
 output "dlq_arn" {
-  value = var.create_dlq ? module.dlq[0].sqs_queue_arn : ""
+  value = var.create_dlq ? module.dlq[0].queue_arn : ""
 }

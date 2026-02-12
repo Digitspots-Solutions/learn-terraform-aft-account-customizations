@@ -31,6 +31,6 @@ module "api_gateway" {
   tags = { Environment = var.environment, Stack = "api_gateway", ManagedBy = "OpportunityPortal" }
 }
 
-output "api_endpoint" { value = module.api_gateway.api_endpoint }
-output "api_id" { value = module.api_gateway.api_id }
+output "api_endpoint" { value = module.api_gateway.apigatewayv2_api_api_endpoint }
+output "api_id" { value = module.api_gateway.apigatewayv2_api_id }
 
