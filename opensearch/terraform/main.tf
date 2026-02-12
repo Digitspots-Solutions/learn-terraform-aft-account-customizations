@@ -26,16 +26,24 @@ locals {
   vpc_cidr    = try(data.terraform_remote_state.vpc.outputs.vpc_cidr, "10.0.0.0/16")
 }
 
-resource "null_resource" "opensearch_slr" {
-  provisioner "local-exec" {
-    command = "aws iam create-service-linked-role --service-name opensearchservice.amazonaws.com || echo 'SLR already exists or error occurred'"
+# Create the OpenSearch Service-Linked Role properly
+# This replaces the old null_resource approach which had race conditions
+resource "aws_iam_service_linked_role" "opensearch" {
+  aws_service_name = "opensearchservice.amazonaws.com"
+  description      = "SLR for OpenSearch to access VPC resources"
+
+  # If the SLR already exists, skip creation
+  count = can(aws_iam_service_linked_role.opensearch[0]) ? 0 : 1
+
+  lifecycle {
+    ignore_changes = all
   }
 }
 
-# Small delay to ensure role propagation
+# Wait for the SLR to fully propagate
 resource "time_sleep" "wait_for_slr" {
-  depends_on = [null_resource.opensearch_slr]
-  create_duration = "10s"
+  depends_on      = [aws_iam_service_linked_role.opensearch]
+  create_duration = "30s"
 }
 
 resource "aws_security_group" "opensearch" {
@@ -59,7 +67,7 @@ resource "aws_security_group" "opensearch" {
 }
 
 resource "aws_opensearch_domain" "main" {
-  depends_on     = [time_sleep.wait_for_slr]
+  depends_on = [time_sleep.wait_for_slr]
   domain_name    = replace("${local.name_prefix}-search", "_", "-")
   engine_version = "OpenSearch_2.11"
 
@@ -97,4 +105,3 @@ resource "aws_opensearch_domain" "main" {
 
 output "domain_endpoint" { value = aws_opensearch_domain.main.endpoint }
 output "domain_arn" { value = aws_opensearch_domain.main.arn }
-

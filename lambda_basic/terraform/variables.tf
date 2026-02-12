@@ -1,13 +1,12 @@
 # Lambda Basic Variables
 
 variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "dev"
+  type    = string
+  default = "dev"
 }
 
 variable "function_name" {
-  description = "Lambda function name"
+  description = "Lambda function name (if empty, will be auto-generated)"
   type        = string
   default     = ""
 }
@@ -15,25 +14,19 @@ variable "function_name" {
 variable "description" {
   description = "Lambda function description"
   type        = string
-  default     = "Deployed by Opportunity Portal"
+  default     = "Managed by Opportunity Portal"
 }
 
-variable "language" {
-  description = "Programming language: python, nodejs, go"
+variable "runtime" {
+  description = "Lambda runtime"
   type        = string
-  default     = "python"
+  default     = "python3.12"
 }
 
 variable "handler" {
   description = "Lambda handler"
   type        = string
   default     = "handler.handler"
-}
-
-variable "architecture" {
-  description = "Lambda architecture: x86_64 or arm64"
-  type        = string
-  default     = "arm64"
 }
 
 variable "memory_size" {
@@ -53,4 +46,3 @@ variable "environment_variables" {
   type        = map(string)
   default     = {}
 }
-

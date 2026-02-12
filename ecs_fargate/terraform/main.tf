@@ -1,12 +1,12 @@
 # ECS Fargate Stack
-# Uses terraform-aws-modules/ecs/aws wrapper
-# 
+# Uses terraform-aws-modules/ecs/aws directly
+#
 # Features:
 # - Serverless container cluster
 # - Fargate and Fargate Spot capacity providers
 # - Container Insights enabled
 # - Service Discovery namespace
-# - Task execution role with ECR/Secrets access
+# - Task execution role
 
 terraform {
   required_version = ">= 1.5.0"
@@ -16,8 +16,6 @@ terraform {
       version = ">= 5.0"
     }
   }
-  
-  # Backend configured by buildspec.yml at runtime
 }
 
 provider "aws" {}
@@ -25,7 +23,6 @@ provider "aws" {}
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# Get VPC outputs from vpc_basic stack
 data "terraform_remote_state" "vpc" {
   backend = "s3"
   config = {
@@ -36,27 +33,66 @@ data "terraform_remote_state" "vpc" {
 }
 
 locals {
-  name_prefix = "${var.environment}-${data.aws_caller_identity.current.account_id}"
-  vpc_id      = try(data.terraform_remote_state.vpc.outputs.vpc_id, "vpc-placeholder")
+  name_prefix  = "${var.environment}-${data.aws_caller_identity.current.account_id}"
+  cluster_name = var.cluster_name != "" ? var.cluster_name : "${local.name_prefix}-ecs"
+  vpc_id       = try(data.terraform_remote_state.vpc.outputs.vpc_id, "vpc-placeholder")
 }
 
 module "ecs" {
-  source = "../../modules/ecs"
+  source  = "terraform-aws-modules/ecs/aws"
+  version = "~> 5.0"
 
-  name_prefix  = local.name_prefix
-  cluster_name = var.cluster_name
+  cluster_name = local.cluster_name
 
-  vpc_id = local.vpc_id
+  # Fargate capacity providers
+  fargate_capacity_providers = {
+    FARGATE = {
+      default_capacity_provider_strategy = {
+        weight = var.fargate_spot_weight > 0 ? 100 - var.fargate_spot_weight : 100
+        base   = 1
+      }
+    }
+    FARGATE_SPOT = {
+      default_capacity_provider_strategy = {
+        weight = var.fargate_spot_weight
+      }
+    }
+  }
 
-  enable_container_insights = true
-  enable_service_discovery  = var.enable_service_discovery
-  fargate_spot_weight       = var.fargate_spot_weight
-
-  log_retention_days = 30
+  # Container Insights
+  cluster_settings = {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 
   tags = {
     Environment = var.environment
     Stack       = "ecs_fargate"
+    ManagedBy   = "OpportunityPortal"
+  }
+}
+
+# Service Discovery Namespace
+resource "aws_service_discovery_private_dns_namespace" "main" {
+  count = var.enable_service_discovery ? 1 : 0
+
+  name        = "${local.cluster_name}.local"
+  description = "Service discovery namespace for ${local.cluster_name}"
+  vpc         = local.vpc_id
+
+  tags = {
+    Environment = var.environment
+    ManagedBy   = "OpportunityPortal"
+  }
+}
+
+# CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/${local.cluster_name}"
+  retention_in_days = 30
+
+  tags = {
+    Environment = var.environment
     ManagedBy   = "OpportunityPortal"
   }
 }
@@ -69,15 +105,10 @@ output "cluster_arn" {
   value = module.ecs.cluster_arn
 }
 
-output "task_execution_role_arn" {
-  value = module.ecs.task_execution_role_arn
-}
-
 output "log_group_name" {
-  value = module.ecs.log_group_name
+  value = aws_cloudwatch_log_group.ecs.name
 }
 
 output "service_discovery_namespace_id" {
-  value = module.ecs.service_discovery_namespace_id
+  value = try(aws_service_discovery_private_dns_namespace.main[0].id, "")
 }
-

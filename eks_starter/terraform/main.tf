@@ -1,15 +1,27 @@
 # EKS Starter Stack
-# Uses terraform-aws-modules/eks/aws wrapper
-# 
+# Uses terraform-aws-modules/eks/aws directly
+#
 # Features:
 # - Development Kubernetes cluster
-# - 2 t3.medium nodes
-# - Core addons (CoreDNS, kube-proxy, VPC CNI, EBS CSI)
+# - Managed node group with t3.medium
+# - Core addons (CoreDNS, kube-proxy, VPC CNI)
 # - IRSA enabled
 
-# Boilerplate removed - supplied by baseline.tf
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+}
 
-# Get VPC outputs from vpc_basic stack
+provider "aws" {}
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 data "terraform_remote_state" "vpc" {
   backend = "s3"
   config = {
@@ -20,26 +32,40 @@ data "terraform_remote_state" "vpc" {
 }
 
 locals {
-  name_prefix = "${var.environment}-${data.aws_caller_identity.current.account_id}"
-  
-  # Fallback values for destroy operations
+  name_prefix        = "${var.environment}-${data.aws_caller_identity.current.account_id}"
+  cluster_name       = var.cluster_name != "" ? var.cluster_name : "${local.name_prefix}-eks"
   vpc_id             = try(data.terraform_remote_state.vpc.outputs.vpc_id, "vpc-placeholder")
   private_subnet_ids = try(data.terraform_remote_state.vpc.outputs.private_subnet_ids, [])
 }
 
 module "eks" {
-  source = "../../modules/eks"
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
 
-  name_prefix    = local.name_prefix
-  cluster_name   = var.cluster_name
+  cluster_name    = local.cluster_name
   cluster_version = var.cluster_version
 
-  vpc_id             = local.vpc_id
-  private_subnet_ids = local.private_subnet_ids
-
-  environment = "starter"
+  vpc_id     = local.vpc_id
+  subnet_ids = local.private_subnet_ids
 
   cluster_endpoint_public_access = true
+
+  # Addons
+  cluster_addons = {
+    coredns    = { most_recent = true }
+    kube-proxy = { most_recent = true }
+    vpc-cni    = { most_recent = true }
+  }
+
+  # Managed node group
+  eks_managed_node_groups = {
+    default = {
+      instance_types = ["t3.medium"]
+      min_size       = 1
+      max_size       = 3
+      desired_size   = 2
+    }
+  }
 
   tags = {
     Environment = var.environment
@@ -61,10 +87,9 @@ output "cluster_arn" {
 }
 
 output "configure_kubectl" {
-  value = module.eks.configure_kubectl
+  value = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${module.eks.cluster_name}"
 }
 
 output "oidc_provider_arn" {
   value = module.eks.oidc_provider_arn
 }
-

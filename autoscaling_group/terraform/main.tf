@@ -42,6 +42,13 @@ module "asg" {
 
   security_groups = [aws_security_group.asg.id]
 
+  # IAM instance profile - required for EC2 instances to authenticate
+  create_iam_instance_profile = true
+  iam_role_name               = "${local.name_prefix}-asg-role"
+  iam_role_policies = {
+    AmazonSSMManagedInstance = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
   tags = { Environment = var.environment, Stack = "autoscaling_group", ManagedBy = "OpportunityPortal" }
 }
 
@@ -61,4 +68,3 @@ resource "aws_security_group" "asg" {
 
 output "asg_name" { value = module.asg.autoscaling_group_name }
 output "asg_arn" { value = module.asg.autoscaling_group_arn }
-

@@ -41,10 +41,9 @@ module "aurora" {
   instance_class = var.instance_class
   instances      = { 1 = {}, 2 = {} }
 
-  vpc_id               = local.vpc_id
-  db_subnet_group_name = module.aurora.db_subnet_group_name
+  vpc_id                 = local.vpc_id
   create_db_subnet_group = true
-  subnets              = local.subnet_ids
+  subnets                = local.subnet_ids
   security_group_rules = {
     vpc_ingress = {
       cidr_blocks = [local.vpc_cidr]

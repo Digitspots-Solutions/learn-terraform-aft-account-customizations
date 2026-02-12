@@ -1,11 +1,11 @@
 # EKS Production Stack
-# Uses terraform-aws-modules/eks/aws wrapper
-# 
+# Uses terraform-aws-modules/eks/aws directly
+#
 # Features:
-# - Production Kubernetes cluster
-# - 3+ m6i.xlarge/m5.xlarge nodes
-# - Core addons with IRSA
-# - HA configuration
+# - Production Kubernetes cluster (3 AZ)
+# - Multiple managed node groups (system + app)
+# - Core addons + EBS CSI driver
+# - Private endpoint by default
 
 terraform {
   required_version = ">= 1.5.0"
@@ -15,8 +15,6 @@ terraform {
       version = ">= 5.0"
     }
   }
-  
-  # Backend configured by buildspec.yml at runtime
 }
 
 provider "aws" {}
@@ -24,7 +22,6 @@ provider "aws" {}
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# Get VPC outputs from vpc_production stack
 data "terraform_remote_state" "vpc" {
   backend = "s3"
   config = {
@@ -36,23 +33,49 @@ data "terraform_remote_state" "vpc" {
 
 locals {
   name_prefix        = "${var.environment}-${data.aws_caller_identity.current.account_id}"
+  cluster_name       = var.cluster_name != "" ? var.cluster_name : "${local.name_prefix}-eks"
   vpc_id             = try(data.terraform_remote_state.vpc.outputs.vpc_id, "vpc-placeholder")
   private_subnet_ids = try(data.terraform_remote_state.vpc.outputs.private_subnet_ids, [])
 }
 
 module "eks" {
-  source = "../../modules/eks"
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
 
-  name_prefix     = local.name_prefix
-  cluster_name    = var.cluster_name
+  cluster_name    = local.cluster_name
   cluster_version = var.cluster_version
 
-  vpc_id             = local.vpc_id
-  private_subnet_ids = local.private_subnet_ids
+  vpc_id     = local.vpc_id
+  subnet_ids = local.private_subnet_ids
 
-  environment = "production"
+  cluster_endpoint_public_access  = var.cluster_endpoint_public_access
+  cluster_endpoint_private_access = true
 
-  cluster_endpoint_public_access = var.cluster_endpoint_public_access
+  # Addons
+  cluster_addons = {
+    coredns                = { most_recent = true }
+    kube-proxy             = { most_recent = true }
+    vpc-cni                = { most_recent = true }
+    aws-ebs-csi-driver     = { most_recent = true }
+  }
+
+  # Managed node groups
+  eks_managed_node_groups = {
+    system = {
+      instance_types = ["m6i.large"]
+      min_size       = 2
+      max_size       = 4
+      desired_size   = 2
+      labels         = { role = "system" }
+    }
+    application = {
+      instance_types = ["m6i.xlarge"]
+      min_size       = 2
+      max_size       = 10
+      desired_size   = 3
+      labels         = { role = "application" }
+    }
+  }
 
   tags = {
     Environment = var.environment
@@ -74,10 +97,9 @@ output "cluster_arn" {
 }
 
 output "configure_kubectl" {
-  value = module.eks.configure_kubectl
+  value = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${module.eks.cluster_name}"
 }
 
 output "oidc_provider_arn" {
   value = module.eks.oidc_provider_arn
 }
-

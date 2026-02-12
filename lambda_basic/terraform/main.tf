@@ -1,6 +1,6 @@
 # Lambda Basic Stack
-# Uses terraform-aws-modules/lambda/aws wrapper
-# 
+# Uses terraform-aws-modules/lambda/aws directly
+#
 # Features:
 # - Single Lambda function
 # - CloudWatch Logs
@@ -15,8 +15,6 @@ terraform {
       version = ">= 5.0"
     }
   }
-  
-  # Backend configured by buildspec.yml at runtime
 }
 
 provider "aws" {}
@@ -25,29 +23,35 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 locals {
-  name_prefix = "${var.environment}-${data.aws_caller_identity.current.account_id}"
+  name_prefix   = "${var.environment}-${data.aws_caller_identity.current.account_id}"
+  function_name = var.function_name != "" ? var.function_name : "${local.name_prefix}-lambda"
 }
 
 module "lambda" {
-  source = "../../modules/lambda"
+  source  = "terraform-aws-modules/lambda/aws"
+  version = "~> 6.0"
 
-  name_prefix   = local.name_prefix
-  function_name = var.function_name
+  function_name = local.function_name
   description   = var.description
+  handler       = var.handler
+  runtime       = var.runtime
+  architectures = ["arm64"]
 
-  language     = var.language
-  handler      = var.handler
-  architecture = var.architecture
+  create_package = false
+  publish        = true
 
   memory_size = var.memory_size
   timeout     = var.timeout
 
   environment_variables = var.environment_variables
 
-  enable_xray        = true
-  log_retention_days = 14
+  # Logging
+  cloudwatch_logs_retention_in_days = 14
+  attach_cloudwatch_logs_policy     = true
 
-  create_api_gateway = false
+  # X-Ray tracing
+  tracing_mode          = "Active"
+  attach_tracing_policy = true
 
   tags = {
     Environment = var.environment
@@ -57,18 +61,17 @@ module "lambda" {
 }
 
 output "function_name" {
-  value = module.lambda.function_name
+  value = module.lambda.lambda_function_name
 }
 
 output "function_arn" {
-  value = module.lambda.function_arn
+  value = module.lambda.lambda_function_arn
 }
 
 output "role_arn" {
-  value = module.lambda.role_arn
+  value = module.lambda.lambda_role_arn
 }
 
 output "cloudwatch_log_group_name" {
-  value = module.lambda.cloudwatch_log_group_name
+  value = module.lambda.lambda_cloudwatch_log_group_name
 }
-
