@@ -21,7 +21,6 @@ module "api_gateway" {
   description   = "HTTP API Gateway"
   protocol_type = "HTTP"
 
-  create_domain_name = false
 
   cors_configuration = {
     allow_headers = ["content-type", "authorization"]

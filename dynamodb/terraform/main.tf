@@ -58,7 +58,7 @@ module "dynamodb" {
     ManagedBy   = "OpportunityPortal"
   }
 
-  kms_key_arn = null
+  server_side_encryption_kms_key_arn = null
 }
 
 output "table_name" {

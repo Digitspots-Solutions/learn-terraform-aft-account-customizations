@@ -37,7 +37,8 @@ module "lambda" {
   runtime       = var.runtime
   architectures = ["arm64"]
 
-  create_package = false
+  create_package = true
+  source_path    = "${path.module}/../"
   publish        = true
 
   memory_size = var.memory_size

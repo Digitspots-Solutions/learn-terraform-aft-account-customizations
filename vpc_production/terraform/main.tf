@@ -58,8 +58,7 @@ module "vpc" {
 
   # VPC Flow Logs - always on for production
   enable_flow_log                      = true
-  create_flow_log_cloudwatch_log_group = true
-  create_flow_log_iam_role             = true
+
 
   tags = {
     Environment = var.environment

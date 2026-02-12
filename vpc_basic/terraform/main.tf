@@ -44,8 +44,7 @@ module "vpc" {
 
   # VPC Flow Logs
   enable_flow_log                      = var.enable_flow_logs
-  create_flow_log_cloudwatch_log_group = var.enable_flow_logs
-  create_flow_log_iam_role             = var.enable_flow_logs
+
 
   tags = {
     Environment = var.environment
