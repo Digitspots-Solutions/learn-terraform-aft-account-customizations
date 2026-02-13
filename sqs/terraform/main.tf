@@ -64,10 +64,10 @@ module "sqs" {
   receive_wait_time_seconds  = 10
   visibility_timeout_seconds = var.visibility_timeout_seconds
 
-  redrive_policy = var.create_dlq ? jsonencode({
+  redrive_policy = var.create_dlq ? {
     deadLetterTargetArn = module.dlq[0].queue_arn
     maxReceiveCount     = var.max_receive_count
-  }) : null
+  } : null
 
   tags = {
     Environment = var.environment

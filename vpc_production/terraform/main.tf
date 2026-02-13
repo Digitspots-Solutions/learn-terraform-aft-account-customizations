@@ -57,7 +57,8 @@ module "vpc" {
   enable_dns_support   = true
 
   # VPC Flow Logs - always on for production
-  enable_flow_log                      = true
+  # VPC Flow Logs - disabled until destination is configured
+  enable_flow_log                      = false
 
 
   tags = {

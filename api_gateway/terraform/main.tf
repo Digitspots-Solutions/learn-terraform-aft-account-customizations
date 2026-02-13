@@ -20,6 +20,8 @@ module "api_gateway" {
   name          = "${local.name_prefix}-api"
   description   = "HTTP API Gateway"
   protocol_type = "HTTP"
+  
+  create_api_domain_name = false
 
 
   cors_configuration = {
