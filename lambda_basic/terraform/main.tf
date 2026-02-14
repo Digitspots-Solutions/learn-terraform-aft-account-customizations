@@ -38,12 +38,22 @@ module "lambda" {
   architectures = ["arm64"]
 
   create_package = true
-  source_path    = "${path.module}/../"
-  hash_extra     = "lambda_basic_v1"
-  artifacts_dir  = "${path.root}/.artifacts"
+  source_path = [
+    {
+      path = "${path.module}/../"
+      patterns = [
+        "!.terraform/.*",
+        "!.terraform.lock.hcl",
+        "!terraform.tfstate.*",
+        "!terraform/.*",
+        # Explicitly include the handler
+        "handler.py",
+      ]
+    }
+  ]
   
-  # Exclude terraform and other build artifacts to avoid disk space issues
-  excludes = [".terraform", ".terraform.lock.hcl", "terraform.tfstate*", "terraform/"]
+  hash_extra     = "lambda_basic_v2"
+  artifacts_dir  = "${path.root}/.artifacts"
   
   publish        = true
 
