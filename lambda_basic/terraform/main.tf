@@ -39,6 +39,12 @@ module "lambda" {
 
   create_package = true
   source_path    = "${path.module}/../"
+  hash_extra     = "lambda_basic_v1"
+  artifacts_dir  = "${path.root}/.artifacts"
+  
+  # Exclude terraform and other build artifacts to avoid disk space issues
+  excludes = [".terraform", ".terraform.lock.hcl", "terraform.tfstate*", "terraform/"]
+  
   publish        = true
 
   memory_size = var.memory_size

@@ -25,9 +25,9 @@ module "vpc" {
   cidr = local.vpc_cidr
   azs  = local.azs
 
-  # Subnet CIDRs
+  # Subnet CIDRs - aligned with legacy vpc-048d0f28bbf3e0a5d
   public_subnets   = [for i, az in local.azs : cidrsubnet(local.vpc_cidr, 8, i)]
-  private_subnets  = [for i, az in local.azs : cidrsubnet(local.vpc_cidr, 8, i + 10)]
+  private_subnets  = ["10.0.32.0/20", "10.0.48.0/20"]
   database_subnets = [for i, az in local.azs : cidrsubnet(local.vpc_cidr, 8, i + 20)]
 
   # NAT Gateway - single (cost-optimized)
