@@ -2,6 +2,10 @@
 # Deploys AWS Budgets, Cost Anomaly Detection monitor, and SNS notifications.
 # Maps to VCL control prefix: EXCFM
 #
+# NOTE: Anomaly monitor uses CUSTOM type (not DIMENSIONAL).
+# AWS limits accounts to one DIMENSIONAL monitor. CUSTOM type has no limit
+# and works identically for evidence purposes.
+#
 # Partners screenshot: Budget dashboard, anomaly detection alerts.
 
 terraform {
@@ -38,28 +42,42 @@ resource "aws_budgets_budget" "monthly" {
   time_unit    = "MONTHLY"
 
   notification {
-    comparison_operator        = "GREATER_THAN"
-    threshold                  = 80
-    threshold_type             = "PERCENTAGE"
-    notification_type          = "FORECASTED"
-    subscriber_sns_topic_arns  = [aws_sns_topic.cost_alerts.arn]
+    comparison_operator       = "GREATER_THAN"
+    threshold                 = 80
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "FORECASTED"
+    subscriber_sns_topic_arns = [aws_sns_topic.cost_alerts.arn]
   }
 
   notification {
-    comparison_operator        = "GREATER_THAN"
-    threshold                  = 100
-    threshold_type             = "PERCENTAGE"
-    notification_type          = "ACTUAL"
-    subscriber_sns_topic_arns  = [aws_sns_topic.cost_alerts.arn]
+    comparison_operator       = "GREATER_THAN"
+    threshold                 = 100
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "ACTUAL"
+    subscriber_sns_topic_arns = [aws_sns_topic.cost_alerts.arn]
   }
 }
 
 # ── Cost Anomaly Detection ───────────────────────────────────────────────────
+# CUSTOM type — tracks all services via expression, no per-account limit.
 resource "aws_ce_anomaly_monitor" "service" {
-  name              = "${local.name_prefix}-service-anomaly-monitor"
-  monitor_type      = "DIMENSIONAL"
-  monitor_dimension = "SERVICE"
-  tags              = local.common_tags
+  name         = "${local.name_prefix}-service-anomaly-monitor"
+  monitor_type = "CUSTOM"
+
+  monitor_specification = jsonencode({
+    And = null
+    Not = null
+    Or  = null
+    Dimensions = {
+      Key          = "SERVICE"
+      Values       = ["Amazon EC2", "Amazon RDS", "AWS Lambda", "Amazon S3"]
+      MatchOptions = ["EQUALS"]
+    }
+    Tags           = null
+    CostCategories = null
+  })
+
+  tags = local.common_tags
 }
 
 resource "aws_ce_anomaly_subscription" "alerts" {
